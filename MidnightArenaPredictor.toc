@@ -1,0 +1,7 @@
+## Interface: 110100 
+## Title: |cFFFF0000[MAP]|r |cFF00CCFFMidnight Arena Predictor|r 
+## Notes: IN YOUR FACE arena alerts - kicks, trinkets, burst, CC, defensives + guide tips
+## Author: jamesnsavidge 
+## Version: 2.0.0 
+## SavedVariables: MidnightPredictorDB ## DefaultState: enabled 
+## Load order matters - Data must load before Engine, Engine before Alerts/Guide Core\Data.lua Core\Engine.lua Core\Alerts.lua Core\Predictions.lua Core\Guide.lua
