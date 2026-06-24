@@ -171,55 +171,85 @@ function engine:COMBAT_LOG_EVENT_UNFILTERED()
     end 
 end
 
--- OnEnemyCast: Route successful enemy casts to the right handler 
-function engine:OnEnemyCast(sourceGUID, sourceName, spellID, spellName, destGUID, 
-    destName) 
-    if not ns.db then return end 
-    local now = GetTime() 
-    local shortName = sourceName and sourceName:match("^[^-]+") or "Enemy" 
-    if not ns.state.enemyCDs[sourceGUID] then ns.state.enemyCDs[sourceGUID] = {} end 
-    
-    -- INTERRUPTS: Kick used = SAFE TO CAST alert 
-    if ns.Interrupts[spellID] then 
-        local data = ns.Interrupts[spellID] 
-        ns.state.enemyCDs[sourceGUID][spellID] = now + data.cd 
-        if ns.db.showSafeToCast then 
-            ns:BigAlert("SAFE TO CAST!", shortName.." "..data.name.." ON CD - 
-"..data.cd.."s FREE!", "SAFE", data.cd) 
-end 
-return 
-end
+-- OnEnemyCast: Route successful enemy casts to the right handler
+function engine:OnEnemyCast(sourceGUID, sourceName, spellID, spellName, destGUID, destName)
+    if not ns.db then
+        return
+    end
 
--- BURST CDs: Alert and predict next in sequence 
-if ns.BurstCDs[spellID] then 
-    local data = ns.BurstCDs[spellID] 
-    ns.state.enemyCDs[sourceGUID][spellID] = now + data.cd 
-    if ns.db.trackBurst 
-    then ns:BigAlert(data.alert, shortName.." -> "..data.name.." 
-        ("..data.dur.."s)", "DANGER", data.dur) 
-        if ns.db.predictBurstSeq then self:PredictNext(sourceGUID, spellName) 
-        end 
-    end 
-    return 
-end 
+    local now = GetTime()
+    local shortName = sourceName and sourceName:match("^[^-]+") or "Enemy"
+    if not ns.state.enemyCDs[sourceGUID] then
+        ns.state.enemyCDs[sourceGUID] = {}
+    end
 
--- DEFENSIVES: Info alert 
-if ns.Defensives[spellID] then 
-    local data = ns.Defensives[spellID] 
-    ns.state.enemyCDs[sourceGUID][spellID] = now + data.cd 
-    if ns.db.trackDefensives then 
-        ns:BigAlert(data.alert, shortName.." -> "..data.name.." ("..(data.dur or 0).."s)", "INFO", data.dur or 0) 
-    end 
-    return 
-end 
+    -- INTERRUPTS: Kick used = SAFE TO CAST alert
+    if ns.Interrupts[spellID] then
+        local data = ns.Interrupts[spellID]
+        ns.state.enemyCDs[sourceGUID][spellID] = now + data.cd
+        if ns.db.showSafeToCast then
+            ns:BigAlert(
+                "SAFE TO CAST!",
+                shortName .. " " .. data.name .. " ON CD - " .. data.cd .. "s FREE!",
+                "SAFE",
+                data.cd
+            )
+        end
+        return
+    end
 
--- CC: Alert if targeting player/team, track DR if ns.CC[spellID] then local data = ns.CC[spellID] 
-    ns.state.enemyCDs[sourceGUID][spellID] = now + data.cd 
-    local isTargetingPlayer = destGUID == UnitGUID("player") 
-    local isTargetingAlly = bit.band(destFlags, COMBATLOG_OBJECT_REACTION_FRIENDLY) > 0 and bit.band(destFlags, COMBATLOG_OBJECT_TYPE_PLAYER) > 0 
-    if (isTargetingPlayer or isTargetingAlly) and ns.db.trackCC then 
-        ns:BigAlert(data.alert, shortName.." -> "..data.name.." ("..data.cd.."s)", "CC", data.cd) 
-    end 
-    if isTargetingPlayer then self:TrackDR(sourceGUID, data.drCat) end 
-    return 
+    -- BURST CDs: Alert and predict next in sequence
+    if ns.BurstCDs[spellID] then
+        local data = ns.BurstCDs[spellID]
+        ns.state.enemyCDs[sourceGUID][spellID] = now + data.cd
+        if ns.db.trackBurst then
+            ns:BigAlert(
+                data.alert,
+                shortName .. " -> " .. data.name .. " (" .. data.dur .. "s)",
+                "DANGER",
+                data.dur
+            )
+            if ns.db.predictBurstSeq then
+                self:PredictNext(sourceGUID, spellName)
+            end
+        end
+        return
+    end
+
+    -- DEFENSIVES: Info alert
+    if ns.Defensives[spellID] then
+        local data = ns.Defensives[spellID]
+        ns.state.enemyCDs[sourceGUID][spellID] = now + data.cd
+        if ns.db.trackDefensives then
+            ns:BigAlert(
+                data.alert,
+                shortName .. " -> " .. data.name .. " (" .. (data.dur or 0) .. "s)",
+                "INFO",
+                data.dur or 0
+            )
+        end
+        return
+    end
+
+    -- CC: Alert if targeting player/team, track DR
+    if ns.CC[spellID] then
+        local data = ns.CC[spellID]
+        ns.state.enemyCDs[sourceGUID][spellID] = now + data.cd
+        local isTargetingPlayer = destGUID == UnitGUID("player")
+        local isTargetingAlly =
+            bit.band(destFlags, COMBATLOG_OBJECT_REACTION_FRIENDLY) > 0 and
+            bit.band(destFlags, COMBATLOG_OBJECT_TYPE_PLAYER) > 0
+        if (isTargetingPlayer or isTargetingAlly) and ns.db.trackCC then
+            ns:BigAlert(
+                data.alert,
+                shortName .. " -> " .. data.name .. " (" .. data.cd .. "s)",
+                "CC",
+                data.cd
+            )
+        end
+        if isTargetingPlayer then
+            self:TrackDR(sourceGUID, data.drCat)
+        end
+        return
+    end
 end
